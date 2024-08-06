@@ -31,7 +31,7 @@ last_odom = None
 environment_dim = 20
 velodyne_data = np.ones(environment_dim) * 10
 
-class Actor(nn.Module):
+class Actor(nn.Module): # checked
     def __init__(self, state_dim, action_dim):
         super(Actor, self).__init__()
 
@@ -47,24 +47,24 @@ class Actor(nn.Module):
         return a
 
 # td3 network
-class td3(object):
-    def __init__(self, state_dim, action_dim):
+class TD3(object): # checked
+    def __init__(self, state_dim, action_dim): # checked
         # Initialize the Actor network
         self.actor = Actor(state_dim, action_dim).to(device)
 
-    def get_action(self, state):
+    def get_action(self, state): # checked
         # Function to get the action from the actor
         state = torch.Tensor(state.reshape(1, -1)).to(device)
         return self.actor(state).cpu().data.numpy().flatten()
 
-    def load(self, filename, directory):
+    def load(self, filename, directory): # checked
         # Function to load network parameters
         self.actor.load_state_dict(
             torch.load("%s/%s_actor.pth" % (directory, filename))
         )
 
 # Check if the random goal position is located on an obstacle and do not accept it if it is
-def check_pos(x, y):
+def check_pos(x, y): # we need to hand-check for each different environment
     goal_ok = False
     
     if x > -0.55 and 1.7 > y > -1.7:
@@ -72,10 +72,10 @@ def check_pos(x, y):
 
     return goal_ok
 
-class GazeboEnv(Node):
+class GazeboEnv(Node): # checked
     """Superclass for all Gazebo environments."""
 
-    def __init__(self):
+    def __init__(self): # checked
         super().__init__('env')
 
         self.environment_dim = 20
@@ -112,7 +112,7 @@ class GazeboEnv(Node):
         self.publisher3 = self.create_publisher(MarkerArray, "angular_velocity", 1)
 
     # Perform an action and read a new state
-    def step(self, action):
+    def step(self, action): # checked
         global velodyne_data
         target = False
         
@@ -199,7 +199,7 @@ class GazeboEnv(Node):
 
         return state, reward, done, target
 
-    def reset(self):
+    def reset(self): # checked x : 10 -> 0, y: 10 -> 0
 
         # Resets the state of the environment and returns an initial observation.
         while not self.reset_proxy.wait_for_service(timeout_sec=1.0):
@@ -214,8 +214,9 @@ class GazeboEnv(Node):
         quaternion = Quaternion.from_euler(0.0, 0.0, angle)
         object_state = self.set_self_state
 
-        x = 10
-        y = 10
+        x = 0
+        y = 0
+        
         position_ok = False
         while not position_ok:
             x = np.random.uniform(-4.5, 4.5)
@@ -291,7 +292,7 @@ class GazeboEnv(Node):
         state = np.append(laser_state, robot_state)
         return state
 
-    def change_goal(self):
+    def change_goal(self): # checked 
         # Place a new goal and check if its location is not on one of the obstacles
         if self.upper < 10:
             self.upper += 0.004
@@ -306,7 +307,7 @@ class GazeboEnv(Node):
             goal_ok = check_pos(self.goal_x, self.goal_y)
     
 
-    def random_box(self):
+    def random_box(self): # checked
         # Randomly change the location of the boxes in the environment on each reset to randomize the training
         # environment
         for i in range(4):
@@ -334,7 +335,7 @@ class GazeboEnv(Node):
             box_state.pose.orientation.w = 1.0
             self.set_state.publish(box_state)
 
-    def publish_markers(self, action):
+    def publish_markers(self, action): # checked
         # Publish visual data in Rviz
         markerArray = MarkerArray()
         marker = Marker()
@@ -398,7 +399,7 @@ class GazeboEnv(Node):
         self.publisher3.publish(markerArray3)
 
     @staticmethod
-    def observe_collision(laser_data):
+    def observe_collision(laser_data): # checked
         # Detect a collision from laser data
         min_laser = min(laser_data)
         if min_laser < COLLISION_DIST:
@@ -406,7 +407,7 @@ class GazeboEnv(Node):
             return True, True, min_laser
         return False, False, min_laser
 
-    @staticmethod
+    @staticmethod # checked
     def get_reward(target, collision, action, min_laser):
         if target:
             env.get_logger().info("reward 100")
@@ -418,9 +419,9 @@ class GazeboEnv(Node):
             r3 = lambda x: 1 - x if x < 1 else 0.0
             return action[0] / 2 - abs(action[1]) / 2 - r3(min_laser) / 2
 
-class Odom_subscriber(Node):
+class Odom_subscriber(Node): # checked
 
-    def __init__(self):
+    def __init__(self): # checked
         super().__init__('odom_subscriber')
         self.subscription = self.create_subscription(
             Odometry,
@@ -429,13 +430,13 @@ class Odom_subscriber(Node):
             10)
         self.subscription
 
-    def odom_callback(self, od_data):
+    def odom_callback(self, od_data): # checked
         global last_odom
         last_odom = od_data
 
-class Velodyne_subscriber(Node):
+class Velodyne_subscriber(Node): # checked
 
-    def __init__(self):
+    def __init__(self): # checked
         super().__init__('velodyne_subscriber')
         self.subscription = self.create_subscription(
             PointCloud2,
@@ -451,7 +452,7 @@ class Velodyne_subscriber(Node):
             )
         self.gaps[-1][-1] += 0.03
 
-    def velodyne_callback(self, v):
+    def velodyne_callback(self, v): # checked
         global velodyne_data
         data = list(pc2.read_points(v, skip_nans=False, field_names=("x", "y", "z")))
         velodyne_data = np.ones(environment_dim) * 10
@@ -486,14 +487,13 @@ if __name__ == '__main__':
     action_dim = 2
 
     # Create the network
-    network = td3(state_dim, action_dim)
+    network = TD3(state_dim, action_dim)
     try:
         network.load(file_name, "~/DRL2/DRL_robot_navigation_ros2/src/td3/scripts/pytorch_models")
     except:
         raise ValueError("Could not load the stored model parameters")
 
-    done = True
-    episode_timesteps = 0
+    
 
     # Create the testing environment
     env = GazeboEnv()
@@ -509,28 +509,28 @@ if __name__ == '__main__':
     
     rate = odom_subscriber.create_rate(2)
 
+    # --------- begin to modify ----------
+
+    done = False # default True
+    episode_timesteps = 0
+    state = env.reset() # reset the environment and get the initial state
+
     # Begin the testing loop
     while rclpy.ok():
+
+        action = network.get_action(np.array(state)) # get action from network
+
+        # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
+        a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
+        next_state, reward, done, target = env.step(a_in)
+        done = 1 if episode_timesteps + 1 == max_ep else int(done)
 
         # On termination of episode
         if done:
             state = env.reset()
-
-            action = network.get_action(np.array(state))
-            # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
-            a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
-            next_state, reward, done, target = env.step(a_in)
-            done = 1 if episode_timesteps + 1 == max_ep else int(done)
-
             done = False
             episode_timesteps = 0
         else:
-            action = network.get_action(np.array(state))
-            # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
-            a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
-            next_state, reward, done, target = env.step(a_in)
-            done = 1 if episode_timesteps + 1 == max_ep else int(done)
-
             state = next_state
             episode_timesteps += 1
 
