@@ -478,9 +478,12 @@ if __name__ == '__main__':
     seed = 0  # Random seed number
     max_ep = 500  # maximum number of steps per episode
     file_name = "TD3_velodyne"  # name of the file to load the policy from
+
+    # Create the testing environment
     environment_dim = 20
     robot_dim = 4
-
+    env = GazeboEnv()
+    time.sleep(5)
     torch.manual_seed(seed)
     np.random.seed(seed)
     state_dim = environment_dim + robot_dim
@@ -495,8 +498,7 @@ if __name__ == '__main__':
 
     
 
-    # Create the testing environment
-    env = GazeboEnv()
+    # --------- ROS2 setup ----------
     odom_subscriber = Odom_subscriber()
     velodyne_subscriber = Velodyne_subscriber()
 
@@ -508,6 +510,8 @@ if __name__ == '__main__':
     executor_thread.start()
     
     rate = odom_subscriber.create_rate(2)
+    # --------- ROS2 setup ----------
+    
 
     # --------- begin to modify ----------
 
