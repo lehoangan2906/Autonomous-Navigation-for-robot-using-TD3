@@ -217,10 +217,10 @@ class TD3(object): # checked
             torch.load("%s/%s_critic.pth" % (directory, filename))
         )
 
-class GazeboEnv(Node):
+class GazeboEnv(Node): # checked
     """Superclass for all Gazebo environments."""
 
-    def __init__(self):
+    def __init__(self): # checked
         super().__init__('env')
         self.environment_dim = 20
         self.odom_x = 0
@@ -256,7 +256,7 @@ class GazeboEnv(Node):
         self.publisher3 = self.create_publisher(MarkerArray, "angular_velocity", 1)
 
     # Perform an action and read a new state
-    def step(self, action):
+    def step(self, action): # checked
         global velodyne_data
         target = False
         
@@ -559,25 +559,29 @@ class GazeboEnv(Node):
             r3 = lambda x: 1 - x if x < 1 else 0.0
             return action[0] / 2 - abs(action[1]) / 2 - r3(min_laser) / 2
 
-class Odom_subscriber(Node):
+class Odom_subscriber(Node): # checked
 
-    def __init__(self):
+    def __init__(self): # checked
         super().__init__('odom_subscriber')
+
+        # creating a subscription to the odometry data
         self.subscription = self.create_subscription(
             Odometry,
             '/odom',
             self.odom_callback,
-            10)
+            10) # creates a subscription to the topic /odom, which publishes messages of type Odometry. The callback function is odom_callback and the queue size is 10
         self.subscription
 
-    def odom_callback(self, od_data):
+    def odom_callback(self, od_data): # checked, this function gets called whenever a new message is received on the /odom topic. The message is passed as an argument to the function
         global last_odom
         last_odom = od_data
 
-class Velodyne_subscriber(Node):
+class Velodyne_subscriber(Node): # checked
 
-    def __init__(self):
+    def __init__(self): # checked
         super().__init__('velodyne_subscriber')
+
+        # creating a subscription to the velodyne point cloud data
         self.subscription = self.create_subscription(
             PointCloud2,
             "/velodyne_points",
@@ -585,28 +589,31 @@ class Velodyne_subscriber(Node):
             10)
         self.subscription
 
-        self.gaps = [[-np.pi / 2 - 0.03, -np.pi / 2 + np.pi / environment_dim]]
+        self.gaps = [[-np.pi / 2 - 0.03, -np.pi / 2 + np.pi / environment_dim]] # a list of lists where each sublist represents an angular range. The first element of the sublist is the start angle and the second element is the end angle of the range
+        
+        # iterate through the number of gaps and calculate the angular range for each gap
         for m in range(environment_dim - 1):
             self.gaps.append(
-                [self.gaps[m][1], self.gaps[m][1] + np.pi / environment_dim]
+                [self.gaps[m][1], self.gaps[m][1] + np.pi / environment_dim] # the start angle of the current gap is the end angle of the previous gap and the end angle of the current gap is the start angle of the previous gap plus the angular range of each gap
             )
-        self.gaps[-1][-1] += 0.03
+        self.gaps[-1][-1] += 0.03 # add a small value to the end angle of the last gap to make sure that the last gap is closed
 
-    def velodyne_callback(self, v):
+    def velodyne_callback(self, v): # checked
         global velodyne_data
-        data = list(pc2.read_points(v, skip_nans=False, field_names=("x", "y", "z")))
-        velodyne_data = np.ones(environment_dim) * 10
-        for i in range(len(data)):
-            if data[i][2] > -0.2:
+        data = list(pc2.read_points(v, skip_nans=False, field_names=("x", "y", "z"))) # read point cloud data
+        velodyne_data = np.ones(environment_dim) * 10 # initialize the array to store the lidar data (10m is the maximum distance of the lidar)
+        
+        for i in range(len(data)): # iterate through each point in the point cloud data
+            if data[i][2] > -0.2: # ignore the points with z coordinate less than -0.2
                 dot = data[i][0] * 1 + data[i][1] * 0
                 mag1 = math.sqrt(math.pow(data[i][0], 2) + math.pow(data[i][1], 2))
                 mag2 = math.sqrt(math.pow(1, 2) + math.pow(0, 2))
-                beta = math.acos(dot / (mag1 * mag2)) * np.sign(data[i][1])
-                dist = math.sqrt(data[i][0] ** 2 + data[i][1] ** 2 + data[i][2] ** 2)
+                beta = math.acos(dot / (mag1 * mag2)) * np.sign(data[i][1])            # calculate the angle between the point and the x-axis
+                dist = math.sqrt(data[i][0] ** 2 + data[i][1] ** 2 + data[i][2] ** 2)  # calculate the distance of the point from the robot
 
-                for j in range(len(self.gaps)):
-                    if self.gaps[j][0] <= beta < self.gaps[j][1]:
-                        velodyne_data[j] = min(velodyne_data[j], dist)
+                for j in range(len(self.gaps)): # iterate through the gaps
+                    if self.gaps[j][0] <= beta < self.gaps[j][1]: # check if the angle of the point is within the gap
+                        velodyne_data[j] = min(velodyne_data[j], dist) # store the minimum distance of the point in the gap
                         break
 
 def check_pos(x, y): # we need to hand-check for each different environment
@@ -660,13 +667,13 @@ if __name__ == '__main__':
     )
     expl_min = 0.1  # Exploration noise after the decay in range [0...expl_noise]
     batch_size = 40  # Size of the mini-batch
-    discount = 0.99999  # Discount factor to calculate the discounted future reward (should be close to 1)
+    discount = 0.9999  # Discount factor to calculate the discounted future reward (should be close to 1)
     tau = 0.005  # Soft target update variable (should be close to 0)
     policy_noise = 0.2  # Added noise for exploration
     noise_clip = 0.5  # Maximum clamping values of the noise
     policy_freq = 2  # Frequency of Actor network updates
     buffer_size = 1e6  # Maximum size of the buffer
-    file_name = "td3_velodyne"  # name of the file to store the policy
+    file_name = "TD3_velodyne"  # name of the file to store the policy
     save_model = True  # Weather to save the model or not
     load_model = False  # Weather to load a stored model
     random_near_obstacle = True  # To take random actions near obstacles or not
@@ -680,6 +687,10 @@ if __name__ == '__main__':
     # Create the training environment
     environment_dim = 20
     robot_dim = 4
+
+    env = GazeboEnv()
+
+    time.sleep(5)
 
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -710,25 +721,28 @@ if __name__ == '__main__':
     count_rand_actions = 0
     random_action = []
 
-    env = GazeboEnv()
-    odom_subscriber = Odom_subscriber()
-    velodyne_subscriber = Velodyne_subscriber()
+    # -------- Additional ROS2 setup --------
+    odom_subscriber = Odom_subscriber()         # create a subscriber to the odometry data
+    velodyne_subscriber = Velodyne_subscriber() # create a subscriber to the velodyne point cloud data
     
-    executor = rclpy.executors.MultiThreadedExecutor()
+    executor = rclpy.executors.MultiThreadedExecutor() # create an executor to run the nodes in parallel
     executor.add_node(odom_subscriber)
     executor.add_node(velodyne_subscriber)
 
-    executor_thread = threading.Thread(target=executor.spin, daemon=True)
-    executor_thread.start()
+    executor_thread = threading.Thread(target=executor.spin, daemon=True) # create a thread to run the executor
+    executor_thread.start() # start the executor thread
     
-    rate = odom_subscriber.create_rate(2)
+    rate = odom_subscriber.create_rate(2) # create a rate object to control the rate of the loop
+    # ----------------------------------------
+
     try:
         while rclpy.ok():
             if timestep < max_timesteps:
 
                 # On termination of episode
                 if done:
-                    env.get_logger().info(f"Done. timestep : {timestep}")
+                    env.get_logger().info(f"Done. timestep : {timestep}") # print the timestep
+
                     if timestep != 0:
                         env.get_logger().info(f"train")
                         network.train(
@@ -774,9 +788,9 @@ if __name__ == '__main__':
                 # Training can also be performed without it
                 if random_near_obstacle:
                     if (
-                        np.random.uniform(0, 1) > 0.85
-                        and min(state[4:-8]) < 0.6
-                        and count_rand_actions < 1
+                        np.random.uniform(0, 1) > 0.85 # 15% chance of taking a random action
+                        and min(state[4:-8]) < 0.6 # if the minimum distance to an obstacle is less than 0.6
+                        and count_rand_actions < 1 
                     ):
                         count_rand_actions = np.random.randint(8, 15)
                         random_action = np.random.uniform(-1, 1, 2)
@@ -801,6 +815,15 @@ if __name__ == '__main__':
                 episode_timesteps += 1
                 timestep += 1
                 timesteps_since_eval += 1
+            
+
+            # -------- The original code has this but new code does not --------
+            # After the training is done, evaluate the network and save it
+            evaluations.append(evaluate(network=network, epoch=epoch, eval_episodes=eval_ep))
+            if save_model:
+                network.save("%s" % file_name, directory="~/DRL2/DRL_robot_navigation_ros2/src/td3/scripts/pytorch_models")
+            np.save("~/DRL2/DRL_robot_navigation_ros2/src/td3/scripts/results/%s" % file_name, evaluations)
+
 
     except KeyboardInterrupt:
         pass
