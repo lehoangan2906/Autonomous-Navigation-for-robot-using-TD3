@@ -40,7 +40,7 @@ last_odom = None
 environment_dim = 20
 velodyne_data = np.ones(environment_dim) * 10
 
-class Actor(nn.Module):
+class Actor(nn.Module): # checked
     def __init__(self, state_dim, action_dim):
         super(Actor, self).__init__()
 
@@ -55,7 +55,7 @@ class Actor(nn.Module):
         a = self.tanh(self.layer_3(s))
         return a
 
-class Critic(nn.Module):
+class Critic(nn.Module): # checked
     def __init__(self, state_dim, action_dim):
         super(Critic, self).__init__()
 
@@ -87,7 +87,7 @@ class Critic(nn.Module):
         q2 = self.layer_6(s2)
         return q1, q2
 
-class td3(object):
+class TD3(object): # checked
     def __init__(self, state_dim, action_dim, max_action):
         # Initialize the Actor network
         self.actor = Actor(state_dim, action_dim).to(device)
@@ -341,7 +341,7 @@ class GazeboEnv(Node):
         reward = self.get_reward(target, collision, action, min_laser)
         return state, reward, done, target
 
-    def reset(self):
+    def reset(self): # checked, the main function remains the same, the only thing that changed is the adaptation to ROS2
 
         # Resets the state of the environment and returns an initial observation.
         #rospy.wait_for_service("/gazebo/reset_world")
@@ -433,7 +433,7 @@ class GazeboEnv(Node):
         state = np.append(laser_state, robot_state)
         return state
 
-    def change_goal(self):
+    def change_goal(self): # checked
         # Place a new goal and check if its location is not on one of the obstacles
         if self.upper < 10:
             self.upper += 0.004
@@ -447,7 +447,7 @@ class GazeboEnv(Node):
             self.goal_y = self.odom_y + random.uniform(self.upper, self.lower)
             goal_ok = check_pos(self.goal_x, self.goal_y)
 
-    def random_box(self):
+    def random_box(self): # checked
         # Randomly change the location of the boxes in the environment on each reset to randomize the training
         # environment
         for i in range(4):
@@ -475,7 +475,7 @@ class GazeboEnv(Node):
             box_state.pose.orientation.w = 1.0
             self.set_state.publish(box_state)
 
-    def publish_markers(self, action):
+    def publish_markers(self, action):  # checked
         # Publish visual data in Rviz
         markerArray = MarkerArray()
         marker = Marker()
@@ -538,7 +538,7 @@ class GazeboEnv(Node):
         markerArray3.markers.append(marker3)
         self.publisher3.publish(markerArray3)
 
-    @staticmethod
+    @staticmethod # checked
     def observe_collision(laser_data):
         # Detect a collision from laser data
         min_laser = min(laser_data)
@@ -547,7 +547,7 @@ class GazeboEnv(Node):
             return True, True, min_laser
         return False, False, min_laser
 
-    @staticmethod
+    @staticmethod  # checked
     def get_reward(target, collision, action, min_laser):
         if target:
             env.get_logger().info("reward 100")
@@ -609,7 +609,7 @@ class Velodyne_subscriber(Node):
                         velodyne_data[j] = min(velodyne_data[j], dist)
                         break
 
-def check_pos(x, y):
+def check_pos(x, y): # we need to hand-check for each different environment
     # Check if the random goal position is located on an obstacle and do not accept it if it is
     goal_ok = False
     
@@ -618,7 +618,7 @@ def check_pos(x, y):
 
     return goal_ok
 
-def evaluate(network, epoch, eval_episodes=10):
+def evaluate(network, epoch, eval_episodes=10): # checked
     avg_reward = 0.0
     col = 0
     for _ in range(eval_episodes):
@@ -629,7 +629,7 @@ def evaluate(network, epoch, eval_episodes=10):
         while not done and count < 501:
             action = network.get_action(np.array(state))
             env.get_logger().info(f"action : {action}")
-            a_in = [(action[0] + 1) / 2, action[1]]
+            a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
             state, reward, done, _ = env.step(a_in)
             avg_reward += reward
             count += 1
@@ -688,7 +688,7 @@ if __name__ == '__main__':
     max_action = 1
 
     # Create the network
-    network = td3(state_dim, action_dim, max_action)
+    network = TD3(state_dim, action_dim, max_action)
     # Create a replay buffer
     replay_buffer = ReplayBuffer(buffer_size, seed)
     if load_model:
@@ -725,6 +725,7 @@ if __name__ == '__main__':
     try:
         while rclpy.ok():
             if timestep < max_timesteps:
+
                 # On termination of episode
                 if done:
                     env.get_logger().info(f"Done. timestep : {timestep}")
@@ -785,8 +786,8 @@ if __name__ == '__main__':
                         action = random_action
                         action[0] = -1
 
-                # Update action to fall in range [0,1] for linear velocity and [-1,1] for angular velocity
-                a_in = [(action[0] + 1) / 2, action[1]]
+                # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
+                a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
                 next_state, reward, done, target = env.step(a_in)
                 done_bool = 0 if episode_timesteps + 1 == max_ep else int(done)
                 done = 1 if episode_timesteps + 1 == max_ep else int(done)

@@ -517,8 +517,8 @@ if __name__ == '__main__':
             state = env.reset()
 
             action = network.get_action(np.array(state))
-            # Update action to fall in range [0,1] for linear velocity and [-1,1] for angular velocity
-            a_in = [(action[0] + 1) / 2, action[1]]
+            # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
+            a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
             next_state, reward, done, target = env.step(a_in)
             done = 1 if episode_timesteps + 1 == max_ep else int(done)
 
@@ -526,8 +526,8 @@ if __name__ == '__main__':
             episode_timesteps = 0
         else:
             action = network.get_action(np.array(state))
-            # Update action to fall in range [0,1] for linear velocity and [-1,1] for angular velocity
-            a_in = [(action[0] + 1) / 2, action[1]]
+            # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
+            a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
             next_state, reward, done, target = env.step(a_in)
             done = 1 if episode_timesteps + 1 == max_ep else int(done)
 
