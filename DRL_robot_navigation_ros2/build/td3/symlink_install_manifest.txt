@@ -155,6 +155,8 @@
 /home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//scripts/runs/events.out.tfevents.1702207343.vish-ubuntu.18092.0
 /home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//scripts/test_velodyne_node.py
 /home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//scripts/train_velodyne_node.py
+/home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//urdf/.DS_Store
+/home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//urdf/meshes/.DS_Store
 /home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//urdf/meshes/laser/hokuyo.dae
 /home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//urdf/meshes/p3dx/Coordinates
 /home/anlh/DRL2/DRL_robot_navigation_ros2/install/td3/share/td3//urdf/meshes/p3dx/back_rim.stl
