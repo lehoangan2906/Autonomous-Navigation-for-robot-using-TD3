@@ -470,7 +470,6 @@ class Velodyne_subscriber(Node): # checked
                         break
 
 if __name__ == '__main__':
-
     rclpy.init(args=None)
 
     # Set the parameters for the implementation
@@ -496,8 +495,6 @@ if __name__ == '__main__':
     except:
         raise ValueError("Could not load the stored model parameters")
 
-    
-
     # --------- ROS2 setup ----------
     odom_subscriber = Odom_subscriber()
     velodyne_subscriber = Velodyne_subscriber()
@@ -512,17 +509,22 @@ if __name__ == '__main__':
     rate = odom_subscriber.create_rate(2)
     # --------- ROS2 setup ----------
     
-
     # --------- begin to modify ----------
 
     done = False # default True
     episode_timesteps = 0
     state = env.reset() # reset the environment and get the initial state
 
+    # Print one sample of the state input to the model
+    print("Sample state input to the model:", state)
+
     # Begin the testing loop
     while rclpy.ok():
 
         action = network.get_action(np.array(state)) # get action from network
+
+        # Print the raw action before scaling
+        print("Raw action from the model:", action)
 
         # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
         a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
