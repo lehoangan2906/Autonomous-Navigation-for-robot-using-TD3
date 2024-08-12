@@ -210,12 +210,24 @@ class TD3(object): # checked
         torch.save(self.critic.state_dict(), "%s/%s_critic.pth" % (directory, filename))
 
     def load(self, filename, directory):
+        directory = os.path.expanduser(directory)
+        actor_path = os.path.join(directory, "%s_actor.pth" % filename)
+        critic_path = os.path.join(directory, "%s_critic.pth" % filename)
+        print(f"Loading actor model from: {actor_path}")
+        print(f"Loading critic model from: {critic_path}")
+
+        self.actor.load_state_dict(torch.load(actor_path, map_location=torch.device('cpu')))
+        self.critic.load_state_dict(torch.load(critic_path, map_location=torch.device('cpu')))
+
+    """
+    def load(self, filename, directory):
         self.actor.load_state_dict(
             torch.load("%s/%s_actor.pth" % (directory, filename))
         )
         self.critic.load_state_dict(
             torch.load("%s/%s_critic.pth" % (directory, filename))
         )
+    """
 
 class GazeboEnv(Node): # checked
     """Superclass for all Gazebo environments."""
@@ -636,7 +648,7 @@ def evaluate(network, epoch, eval_episodes=10): # checked
         while not done and count < 501:
             action = network.get_action(np.array(state))
             env.get_logger().info(f"action : {action}")
-            a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
+            a_in = [((action[0] + 1) / 2) * 0.4, action[1] * 0.6]
             state, reward, done, _ = env.step(a_in)
             avg_reward += reward
             count += 1
@@ -800,8 +812,8 @@ if __name__ == '__main__':
                         action = random_action
                         action[0] = -1
 
-                # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
-                a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
+                # Update action to fall in range [0,0.4] for linear velocity and [-0.6,0.6] for angular velocity
+                a_in = [((action[0] + 1) / 2) * 0.4, action[1] * 0.6]
                 next_state, reward, done, target = env.step(a_in)
                 done_bool = 0 if episode_timesteps + 1 == max_ep else int(done)
                 done = 1 if episode_timesteps + 1 == max_ep else int(done)

@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import rclpy
+import os
 from rclpy.node import Node
 import threading
 
@@ -57,11 +58,19 @@ class TD3(object): # checked
         state = torch.Tensor(state.reshape(1, -1)).to(device)
         return self.actor(state).cpu().data.numpy().flatten()
 
+    def load(self, filename, directory):
+        directory = os.path.expanduser(directory)
+        actor_path = os.path.join(directory, "%s_actor.pth" % filename)
+        print(f"Loading the actor model from: {actor_path}")
+        self.actor.load_state_dict(torch.load(actor_path, map_location=torch.device('cpu')))
+
+    """ Original load function, not used in this implementation
     def load(self, filename, directory): # checked
         # Function to load network parameters
         self.actor.load_state_dict(
             torch.load("%s/%s_actor.pth" % (directory, filename))
         )
+    """
 
 # Check if the random goal position is located on an obstacle and do not accept it if it is
 def check_pos(x, y): # we need to hand-check for each different environment
@@ -523,11 +532,16 @@ if __name__ == '__main__':
 
         action = network.get_action(np.array(state)) # get action from network
 
+<<<<<<< HEAD
         # Print the raw action before scaling
         print("Raw action from the model:", action)
 
         # Update action to fall in range [0,0.3] for linear velocity and [-0.5,0.5] for angular velocity
         a_in = [((action[0] + 1) / 2) * 0.3, action[1] * 0.5]
+=======
+        # Update action to fall in range [0,0.4] for linear velocity and [-0.6, 0.6] for angular velocity
+        a_in = [((action[0] + 1) / 2) * 0.4, action[1] * 0.6]
+>>>>>>> 248ea55312a5abf4e1e6cc96a87e744ab545da84
         next_state, reward, done, target = env.step(a_in)
         done = 1 if episode_timesteps + 1 == max_ep else int(done)
 
